@@ -173,6 +173,7 @@ else:
 
         for i, p in enumerate(productos):
             with cols[i % 3]:
+                cont = st.container()  # ← FIX CRÍTICO
                 card_html = f"""
                 <div class="product-card">
                     <img class="product-img" src="data:image/png;base64,{p['imagen']}"/>
@@ -184,4 +185,4 @@ else:
                     </a>
                 </div>
                 """
-                st.markdown(card_html, unsafe_allow_html=True)
+                cont.markdown(card_html, unsafe_allow_html=True)
