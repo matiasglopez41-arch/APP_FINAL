@@ -4,6 +4,7 @@ import os
 from PIL import Image
 from io import BytesIO
 import base64
+from datetime import datetime
 
 # ---------------------------
 # Funciones auxiliares
@@ -23,6 +24,16 @@ def convertir_imagen_a_base64(imagen):
     buffer = BytesIO()
     imagen.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode()
+
+def cargar_ventas():
+    if os.path.exists("ventas.json"):
+        with open("ventas.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def guardar_ventas(ventas):
+    with open("ventas.json", "w", encoding="utf-8") as f:
+        json.dump(ventas, f, ensure_ascii=False, indent=4)
 
 # ---------------------------
 # Configuración básica
@@ -100,15 +111,19 @@ section[data-testid="stSidebar"] {
 st.sidebar.header("Acceso administrador")
 clave = st.sidebar.text_input("Clave de administrador", type="password")
 
-# Cambiá esta clave si querés otra
 es_admin = (clave == "jessi2024")
 
+# Menú con nueva sección
 if es_admin:
-    menu = st.sidebar.selectbox("Menú", ["Ver catálogo", "Agregar producto", "Eliminar producto"])
+    menu = st.sidebar.selectbox(
+        "Menú",
+        ["Ver catálogo", "Agregar producto", "Eliminar producto", "Registro de ventas"]
+    )
 else:
     menu = "Ver catálogo"
 
 productos = cargar_productos()
+ventas = cargar_ventas()
 
 # ---------------------------
 # Página: Agregar producto
@@ -160,6 +175,40 @@ elif menu == "Eliminar producto" and es_admin:
             st.success(f"Producto '{seleccion}' eliminado")
 
 # ---------------------------
+# Página: Registro de ventas (NUEVO)
+# ---------------------------
+
+elif menu == "Registro de ventas" and es_admin:
+    st.header("Registro de ventas")
+
+    if len(productos) == 0:
+        st.info("No hay productos cargados todavía")
+    else:
+        nombres = [p["nombre"] for p in productos]
+        producto_vendido = st.selectbox("Producto vendido", nombres)
+        cantidad = st.number_input("Cantidad", min_value=1, value=1)
+        precio_venta = st.number_input("Precio de venta", min_value=0)
+
+        if st.button("Registrar venta"):
+            nueva_venta = {
+                "producto": producto_vendido,
+                "cantidad": cantidad,
+                "precio": precio_venta,
+                "fecha": datetime.now().strftime("%Y-%m-%d %H:%M")
+            }
+
+            ventas.append(nueva_venta)
+            guardar_ventas(ventas)
+
+            st.success("Venta registrada correctamente")
+
+    st.subheader("Historial de ventas")
+    if len(ventas) == 0:
+        st.info("Todavía no hay ventas registradas")
+    else:
+        st.table(ventas)
+
+# ---------------------------
 # Página: Ver catálogo (público)
 # ---------------------------
 
@@ -173,7 +222,7 @@ else:
 
         for i, p in enumerate(productos):
             with cols[i % 3]:
-                cont = st.container()  # ← FIX CRÍTICO
+                cont = st.container()
                 card_html = f"""
                 <div class="product-card">
                     <img class="product-img" src="data:image/png;base64,{p['imagen']}"/>
